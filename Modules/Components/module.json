@@ -1,0 +1,11 @@
+{
+    "name": "Components",
+    "alias": "components",
+    "description": "UI components showcase module (static)",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Components\\app\\Providers\\ComponentsServiceProvider"
+    ],
+    "files": []
+}

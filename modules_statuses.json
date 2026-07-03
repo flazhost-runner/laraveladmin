@@ -1,0 +1,11 @@
+{
+    "TestProbe": true,
+    "Auth": true,
+    "Access": true,
+    "Dashboard": true,
+    "Setting": true,
+    "Profile": true,
+    "Components": true,
+    "Home": true,
+    "Media": true
+}

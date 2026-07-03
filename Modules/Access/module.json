@@ -1,0 +1,11 @@
+{
+    "name": "Access",
+    "alias": "access",
+    "description": "Access control module (users, roles, permissions)",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Access\\app\\Providers\\AccessServiceProvider"
+    ],
+    "files": []
+}

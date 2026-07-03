@@ -1,0 +1,11 @@
+{
+    "name": "Setting",
+    "alias": "setting",
+    "description": "Settings and FE catalog module",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Setting\\app\\Providers\\SettingServiceProvider"
+    ],
+    "files": []
+}
