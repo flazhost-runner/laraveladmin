@@ -1,0 +1,14 @@
+{
+  "name": "LaravelAdmin",
+  "language": "php",
+  "install": [
+    "composer install",
+    "php artisan key:generate",
+    "npm install",
+    "npm run build"
+  ],
+  "migrate": ["php artisan migrate --force"],
+  "start": "php artisan serve --host=0.0.0.0 --port=${APP_PORT}",
+  "url": "http://localhost:${APP_PORT}",
+  "readyPath": "/"
+}
