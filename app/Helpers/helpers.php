@@ -123,10 +123,23 @@ if (! function_exists('auth_user')) {
 if (! function_exists('hasAccess')) {
     /**
      * Check whether the currently authenticated user has a given permission.
+     *
+     * Administrator role bypasses permission checks — parity with NodeAdmin
+     * (res.locals.hasAccess), GoAdmin (User.HasAccess) and the Authorize
+     * middleware, so the sidebar shows the full menu for admins even when no
+     * explicit route permissions are seeded.
      */
     function hasAccess(string $name, string $method = 'GET'): bool
     {
-        return auth_user()?->hasPermission($name, $method) ?? false;
+        $user = auth_user();
+        if ($user === null) {
+            return false;
+        }
+        if ($user->hasRole('Administrator')) {
+            return true;
+        }
+
+        return $user->hasPermission($name, $method);
     }
 }
 

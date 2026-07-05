@@ -4,33 +4,37 @@ namespace Modules\Home\app\Services;
 
 use App\Models\Setting;
 use Illuminate\Support\Facades\View;
+use Modules\Home\app\Interfaces\IFeTemplateService;
 use Modules\Home\app\Interfaces\IHomeService;
 
+/**
+ * Public landing page (frontend).
+ *
+ * - Active slug 'default' → render the local Blade landing view (fe/default,
+ *   landing v6 — header/footer partials + assets under public/fe/default,
+ *   mirroring NodeAdmin's EJS fe/default layout).
+ * - Any other slug → serve the cached self-contained opentailwind HTML raw
+ *   (downloaded on-demand & cached under storage/app/fe/templates). When no
+ *   HTML is available (offline, download failed) → fall back to the local
+ *   default landing so the page always renders.
+ */
 class HomeService implements IHomeService
 {
-    /**
-     * Get the active landing page HTML.
-     *
-     * If fe_template = 'agency-consulting-002-creative-agency', renders the
-     * built-in Blade view (fe/default/index) with setting data.
-     * Otherwise, serves the cached HTML from storage/app/fe_cache/{slug}.html.
-     */
+    public function __construct(private IFeTemplateService $feTemplateService) {}
+
     public function getActiveLanding(): string
     {
+        $slug = $this->feTemplateService->getActiveSlug();
+
+        if (! $this->feTemplateService->isDefaultView($slug)) {
+            $html = $this->feTemplateService->getActiveHtml();
+            if ($html !== null) {
+                return $html;
+            }
+        }
+
         $setting = Setting::getCurrent();
-        $slug = $setting !== null ? $setting->fe_template : 'agency-consulting-002-creative-agency';
 
-        if ($slug === 'agency-consulting-002-creative-agency') {
-            return View::make('home-module::fe.default.index', compact('setting'))->render();
-        }
-
-        $cachePath = storage_path("app/fe_cache/{$slug}.html");
-
-        if (file_exists($cachePath)) {
-            return file_get_contents($cachePath);
-        }
-
-        // Fallback: render default Blade view
         return View::make('home-module::fe.default.index', compact('setting'))->render();
     }
 }

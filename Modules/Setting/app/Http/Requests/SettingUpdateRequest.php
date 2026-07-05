@@ -25,7 +25,8 @@ class SettingUpdateRequest extends FormRequest
             'address' => ['nullable', 'string', 'max:500'],
             'copyright' => ['nullable', 'string', 'max:200'],
             'theme' => ['nullable', 'string', 'max:50'],
-            'fe_template' => ['nullable', 'string', 'max:200'],
+            // 'default' (local landing v6) or an opentailwind slug (anti-SSRF).
+            'fe_template' => ['nullable', 'string', 'max:200', 'regex:/^(default|([a-z]+(?:-[a-z]+)*)-(\d{3})-([a-z0-9-]+))$/'],
         ];
     }
 }

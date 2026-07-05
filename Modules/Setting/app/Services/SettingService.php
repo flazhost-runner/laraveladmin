@@ -2,16 +2,17 @@
 
 namespace Modules\Setting\app\Services;
 
+use App\Exceptions\AppException;
 use App\Models\Setting;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
-use Modules\Setting\app\Interfaces\IFeCatalogService;
+use Modules\Home\app\Interfaces\IFeTemplateService;
 use Modules\Setting\app\Interfaces\ISettingService;
 
 class SettingService implements ISettingService
 {
     public function __construct(
-        private IFeCatalogService $feCatalogService,
+        private IFeTemplateService $feTemplateService,
     ) {}
 
     public function get(): Setting
@@ -23,7 +24,7 @@ class SettingService implements ISettingService
             $setting->forceFill([
                 'name' => 'LaravelAdmin',
                 'theme' => 'blue',
-                'fe_template' => 'agency-consulting-002-creative-agency',
+                'fe_template' => config('fe_templates.default'),
             ]);
             $setting->save();
         }
@@ -35,8 +36,11 @@ class SettingService implements ISettingService
     {
         $setting = $this->get();
 
-        $oldTemplate = $setting->fe_template;
-        $newTemplate = $data['fe_template'] ?? $oldTemplate;
+        // Validate the FE template slug pattern before saving (anti-SSRF).
+        $feSlug = $data['fe_template'] ?? null;
+        if ($feSlug !== null && ! $this->feTemplateService->isValidSlug($feSlug)) {
+            throw new AppException('Template tidak dikenali', 400);
+        }
 
         // Handle file uploads
         foreach (['icon', 'logo', 'login_image'] as $field) {
@@ -59,13 +63,18 @@ class SettingService implements ISettingService
         $setting->forceFill($data);
         $setting->save();
 
-        // If fe_template changed, ensure new template is cached
-        if ($newTemplate !== $oldTemplate) {
-            $this->feCatalogService->ensure($newTemplate);
-        }
-
-        // Invalidate settings cache
+        // Invalidate settings cache so changes show up immediately.
         Cache::forget('settings_current');
+
+        // FE template changed → download on-demand (when not cached yet).
+        // A failed download must not fail the save (landing falls back).
+        if ($feSlug) {
+            try {
+                $this->feTemplateService->ensure($feSlug);
+            } catch (AppException $e) {
+                logger()->error("Unduh template frontend gagal: {$e->getMessage()}");
+            }
+        }
 
         return $setting->fresh();
     }

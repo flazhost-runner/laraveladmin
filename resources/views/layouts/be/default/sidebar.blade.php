@@ -21,7 +21,7 @@
         </a>
 
         <!-- UI Components -->
-        @if(auth_user()?->hasPermission('admin.v1.components.index', 'GET'))
+        @if(hasAccess('admin.v1.components.index', 'GET'))
         <a href="{{ route('admin.v1.components.index') }}"
            class="nav-link-tw {{ request()->routeIs('admin.v1.components.index') ? 'active' : '' }}">
             <i class="fas fa-cubes fa-fw"></i> UI Components
@@ -30,37 +30,37 @@
 
         <!-- Maintenance section -->
         @php
-            $showMaint = auth_user()?->hasPermission('admin.v1.access.permission.index','GET')
-                      || auth_user()?->hasPermission('admin.v1.access.role.index','GET')
-                      || auth_user()?->hasPermission('admin.v1.access.user.index','GET')
-                      || auth_user()?->hasPermission('admin.v1.setting.index','GET');
+            $showMaint = hasAccess('admin.v1.access.permission.index', 'GET')
+                      || hasAccess('admin.v1.access.role.index', 'GET')
+                      || hasAccess('admin.v1.access.user.index', 'GET')
+                      || hasAccess('admin.v1.setting.index', 'GET');
         @endphp
         @if($showMaint)
         <div class="mt-4 mb-1 px-2 text-xs text-white/50 uppercase tracking-wider font-semibold">Maintenance</div>
         @endif
 
-        @if(auth_user()?->hasPermission('admin.v1.access.permission.index','GET'))
+        @if(hasAccess('admin.v1.access.permission.index', 'GET'))
         <a href="{{ route('admin.v1.access.permission.index') }}"
            class="nav-link-tw {{ request()->routeIs('admin.v1.access.permission.*') ? 'active' : '' }}">
             <i class="fas fa-key fa-fw"></i> Permission
         </a>
         @endif
 
-        @if(auth_user()?->hasPermission('admin.v1.access.role.index','GET'))
+        @if(hasAccess('admin.v1.access.role.index', 'GET'))
         <a href="{{ route('admin.v1.access.role.index') }}"
            class="nav-link-tw {{ request()->routeIs('admin.v1.access.role.*') ? 'active' : '' }}">
             <i class="fas fa-user-shield fa-fw"></i> Role
         </a>
         @endif
 
-        @if(auth_user()?->hasPermission('admin.v1.access.user.index','GET'))
+        @if(hasAccess('admin.v1.access.user.index', 'GET'))
         <a href="{{ route('admin.v1.access.user.index') }}"
            class="nav-link-tw {{ request()->routeIs('admin.v1.access.user.*') ? 'active' : '' }}">
             <i class="fas fa-users fa-fw"></i> User
         </a>
         @endif
 
-        @if(auth_user()?->hasPermission('admin.v1.setting.index','GET'))
+        @if(hasAccess('admin.v1.setting.index', 'GET'))
         <a href="{{ route('admin.v1.setting.index') }}"
            class="nav-link-tw {{ request()->routeIs('admin.v1.setting.index') ? 'active' : '' }}">
             <i class="fas fa-cog fa-fw"></i> Setting

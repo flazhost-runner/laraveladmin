@@ -2,6 +2,7 @@
 
 namespace Modules\Setting\app\Http\Controllers\Web\V1;
 
+use App\Exceptions\AppException;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Modules\Setting\app\Http\Requests\SettingUpdateRequest;
@@ -10,14 +11,6 @@ use Modules\Setting\app\Interfaces\ISettingService;
 
 class SettingController extends Controller
 {
-    private const THEMES = [
-        'blue' => ['#3B82F6', '#60A5FA', '#EFF6FF', '#1E40AF'],
-        'purple' => ['#8B5CF6', '#A78BFA', '#F5F3FF', '#5B21B6'],
-        'green' => ['#10B981', '#34D399', '#ECFDF5', '#065F46'],
-        'orange' => ['#F59E0B', '#FCD34D', '#FFFBEB', '#92400E'],
-        'red' => ['#EF4444', '#F87171', '#FEF2F2', '#991B1B'],
-    ];
-
     public function __construct(
         private ISettingService $settingService,
         private IFeCatalogService $feCatalogService,
@@ -26,11 +19,22 @@ class SettingController extends Controller
     public function index(Request $request)
     {
         $setting = $this->settingService->get();
-        $filter = $request->only(['q_name', 'fe_page', 'q_category']);
-        $catalog = $this->feCatalogService->getCatalog($filter);
-        $themes = self::THEMES;
 
-        return view('setting-module::be.default.index', compact('setting', 'catalog', 'filter', 'themes'));
+        // FE catalog: server-side pagination + filter (q_name/q_category/
+        // q_page). The active template is pinned to the first page.
+        $filter = $request->only(['q_name', 'q_category', 'q_page', 'q_page_size']);
+        $feActive = trim((string) ($setting->fe_template ?? '')) ?: config('fe_templates.default');
+        $result = $this->feCatalogService->paginate($filter, $feActive);
+
+        return view('setting-module::be.default.index', [
+            'setting' => $setting,
+            'themes' => config('themes', []),
+            'feTemplates' => $result['datas'],
+            'feCategories' => $this->feCatalogService->categories(),
+            'feActive' => $feActive,
+            'paginateData' => $result['paginate_data'],
+            'filter' => $filter,
+        ]);
     }
 
     public function update(SettingUpdateRequest $request)
@@ -41,16 +45,16 @@ class SettingController extends Controller
         return redirect()->route('admin.v1.setting.index')->with('success', 'Save Setting Success.');
     }
 
+    /** Raw HTML preview of one FE template (thumbnail/modal; cached client-side). */
     public function fePreview(string $slug)
     {
         try {
             $html = $this->feCatalogService->previewHtml($slug);
 
-            return response($html, 200)->header('Content-Type', 'text/html');
-        } catch (\InvalidArgumentException $e) {
-            abort(400, $e->getMessage());
-        } catch (\RuntimeException $e) {
-            abort(502, $e->getMessage());
+            return response($html, 200)->header('Content-Type', 'text/html; charset=utf-8');
+        } catch (AppException $e) {
+            return response($e->getMessage(), $e->getCode() ?: 502)
+                ->header('Content-Type', 'text/plain; charset=utf-8');
         }
     }
 }

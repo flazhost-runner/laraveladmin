@@ -3,7 +3,9 @@
 namespace Modules\Home\app\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Modules\Home\app\Interfaces\IFeTemplateService;
 use Modules\Home\app\Interfaces\IHomeService;
+use Modules\Home\app\Services\FeTemplateService;
 use Modules\Home\app\Services\HomeService;
 
 class HomeServiceProvider extends ServiceProvider
@@ -13,6 +15,10 @@ class HomeServiceProvider extends ServiceProvider
         $this->app->bind(
             IHomeService::class,
             HomeService::class,
+        );
+        $this->app->bind(
+            IFeTemplateService::class,
+            FeTemplateService::class,
         );
     }
 

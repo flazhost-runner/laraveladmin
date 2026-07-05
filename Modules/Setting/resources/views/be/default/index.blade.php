@@ -3,168 +3,165 @@
 @section('content')
 
 <div class="flex items-center justify-between mb-6">
-    <h1 class="text-2xl font-bold text-gray-800">Settings</h1>
+    <h1 class="text-2xl font-bold text-gray-800">Setting Management</h1>
 </div>
 
-{{-- ============================================================
-     SECTION 1: Admin Theme
-     ============================================================ --}}
-<div class="tw-card mb-6">
-    <h2 class="text-lg font-semibold text-gray-700 mb-4">
-        <i class="fas fa-palette fa-fw text-indigo-500"></i> Admin Theme
-    </h2>
-    <p class="text-sm text-gray-500 mb-4">Choose the color theme for the admin panel. The selected theme will be applied immediately after saving.</p>
+{{-- FE catalog search form (GET, separate from the POST setting form).
+     Inputs inside the Frontend Template card associate via form="fe_search". --}}
+<form id="fe_search" method="GET" action="{{ route('admin.v1.setting.index') }}"></form>
 
-    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3" id="theme-picker">
-        @foreach($themes as $themeName => $swatches)
-        <label class="cursor-pointer group">
-            <input type="radio" name="_theme_picker" value="{{ $themeName }}"
-                   {{ strtolower($setting->theme ?? 'blue') === $themeName ? 'checked' : '' }}
-                   class="sr-only theme-radio"
-                   onchange="document.getElementById('theme_input').value = this.value">
-            <div class="theme-swatch border-2 rounded-lg p-3 transition-all
-                        {{ strtolower($setting->theme ?? 'blue') === $themeName
-                            ? 'border-gray-800 ring-2 ring-gray-400 bg-gray-50'
-                            : 'border-gray-200 hover:border-gray-400' }}"
-                 data-theme="{{ $themeName }}">
-                <div class="flex gap-1 mb-2">
-                    @foreach($swatches as $hex)
-                    <div class="w-5 h-5 rounded-full border border-white shadow-sm" style="background:{{ $hex }}"></div>
-                    @endforeach
-                </div>
-                <div class="text-xs font-medium text-gray-700 capitalize">{{ $themeName }}</div>
-                @if(strtolower($setting->theme ?? 'blue') === $themeName)
-                <div class="text-xs text-gray-500 mt-0.5">
-                    <i class="fas fa-check-circle text-green-500"></i> Active
-                </div>
-                @endif
-            </div>
-        </label>
-        @endforeach
-    </div>
-</div>
+<form method="POST" action="{{ route('admin.v1.setting.update') }}?_method=PUT" enctype="multipart/form-data">
+@csrf
 
-{{-- ============================================================
-     SECTION 2: Frontend Template Catalog
-     ============================================================ --}}
-<div class="tw-card mb-6">
-    <h2 class="text-lg font-semibold text-gray-700 mb-4">
-        <i class="fas fa-window-maximize fa-fw" style="color:var(--primary)"></i> Frontend Template
-    </h2>
-    <p class="text-sm text-gray-500 mb-4">
-        Choose the public-facing template. The active template is: <strong>{{ $setting->fe_template ?? 'none' }}</strong>
-    </p>
-
-    {{-- Search / Filter Form --}}
-    <form method="GET" action="{{ route('admin.v1.setting.index') }}" id="fe_search" class="flex flex-wrap gap-2 mb-4">
-        <input type="text" name="q_name" value="{{ $filter['q_name'] ?? '' }}"
-               placeholder="Search templates..." class="form-control w-auto flex-1 min-w-[180px]">
-
-        <select name="q_category" class="form-control w-auto">
-            <option value="">All Categories</option>
-            @foreach($catalog['categories'] as $cat)
-            <option value="{{ $cat }}" {{ ($filter['q_category'] ?? '') === $cat ? 'selected' : '' }}>
-                {{ ucwords(str_replace('-', ' ', $cat)) }}
-            </option>
-            @endforeach
-        </select>
-
-        <input type="hidden" name="fe_page" value="1">
-        <button type="submit" class="btn btn-secondary">
-            <i class="fas fa-search fa-fw"></i> Search
-        </button>
-        @if(!empty($filter['q_name']) || !empty($filter['q_category']))
-        <a href="{{ route('admin.v1.setting.index') }}" class="btn btn-secondary">
-            <i class="fas fa-times fa-fw"></i> Clear
-        </a>
-        @endif
-    </form>
-
-    {{-- Template Grid --}}
-    @if(count($catalog['items']) === 0)
-    <div class="text-center py-10 text-gray-500">
-        <i class="fas fa-folder-open fa-2x mb-2"></i>
-        <p>No templates found.</p>
-    </div>
-    @else
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 mb-4">
-        @foreach($catalog['items'] as $tpl)
-        @php $isActive = ($tpl['slug'] === ($setting->fe_template ?? '')); @endphp
-        <div class="fe-card border-2 rounded-lg overflow-hidden transition-all
-                    {{ $isActive ? 'border-indigo-500 ring-2 ring-indigo-300' : 'border-gray-200 hover:border-gray-400' }}"
-             data-slug="{{ $tpl['slug'] }}">
-            {{-- Thumbnail iframe --}}
-            <div class="relative w-full bg-gray-100" style="height:160px">
-                <iframe class="fe-preview-iframe absolute inset-0 w-full h-full border-0 pointer-events-none"
-                        data-slug="{{ $tpl['slug'] }}"
-                        data-preview-url="{{ route('admin.v1.setting.fe_preview', $tpl['slug']) }}"
-                        sandbox="allow-same-origin"
-                        style="transform:scale(0.5);transform-origin:top left;width:200%;height:200%;"></iframe>
-                <div class="fe-preview-loading absolute inset-0 flex items-center justify-center bg-gray-100 text-gray-400 text-xs">
-                    <i class="fas fa-spinner fa-spin"></i>
-                </div>
-                {{-- Full Preview Button --}}
-                <button type="button"
-                        class="fe-full-preview-btn absolute top-1 right-1 btn btn-xs bg-white/80 text-gray-700 border border-gray-300 text-xs px-1.5 py-0.5 rounded"
-                        data-slug="{{ $tpl['slug'] }}"
-                        data-preview-url="{{ route('admin.v1.setting.fe_preview', $tpl['slug']) }}">
-                    <i class="fas fa-expand fa-fw"></i>
-                </button>
-            </div>
-            <div class="p-3">
-                <div class="text-sm font-medium text-gray-800 mb-0.5">{{ $tpl['name'] }}</div>
-                @if(!empty($tpl['category']))
-                <div class="text-xs text-gray-400 mb-2 capitalize">{{ str_replace('-', ' ', $tpl['category']) }}</div>
-                @endif
-                @if($isActive)
-                <button type="button"
-                        class="btn btn-xs w-full bg-indigo-600 text-white cursor-default" disabled>
-                    <i class="fas fa-check fa-fw"></i> CHOSEN
-                </button>
-                @else
-                <button type="button"
-                        class="btn btn-xs w-full btn-secondary fe-choose-btn"
-                        data-slug="{{ $tpl['slug'] }}">
-                    CHOOSE
-                </button>
-                @endif
-            </div>
+    {{-- ===== Admin Theme Switcher ===== --}}
+    <div class="tw-card p-6 mb-6">
+        <div class="flex items-center gap-2 mb-1">
+            <i class="fas fa-palette" style="color:var(--primary)"></i>
+            <h2 class="text-lg font-bold" style="color:var(--primary)">Admin Theme</h2>
         </div>
-        @endforeach
+        <p class="text-sm text-gray-500 mb-4">Choose a theme — admin appearance will update after saving.</p>
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+            @foreach($themes as $themeKey => $colors)
+            @php $isTheme = strtolower($setting->theme ?? 'blue') === $themeKey; @endphp
+            <label class="cursor-pointer block">
+                <input type="radio" name="theme" value="{{ $themeKey }}" class="sr-only theme-radio" {{ $isTheme ? 'checked' : '' }}>
+                <div class="theme-swatch rounded-xl overflow-hidden border-2 transition {{ $isTheme ? 'border-gray-800' : 'border-transparent' }}" style="box-shadow:0 4px 10px rgba(0,0,0,.08)">
+                    <div class="h-16 flex">
+                        <div class="flex-1" style="background:{{ $colors['dark'] }}"></div>
+                        <div class="flex-1" style="background:{{ $colors['primary'] }}"></div>
+                        <div class="flex-1" style="background:{{ $colors['secondary'] }}"></div>
+                        <div class="flex-1" style="background:{{ $colors['light'] }}"></div>
+                    </div>
+                    <div class="bg-white py-2 px-3 flex items-center justify-between">
+                        <span class="text-sm font-semibold text-gray-700 capitalize">{{ $themeKey }}</span>
+                        <i class="fas fa-check-circle check-icon {{ $isTheme ? '' : 'hidden' }}" style="color:{{ $colors['primary'] }}"></i>
+                    </div>
+                </div>
+            </label>
+            @endforeach
+        </div>
     </div>
 
-    {{-- Pagination --}}
-    @if($catalog['last_page'] > 1)
-    <div class="flex items-center gap-1 flex-wrap">
-        @for($p = 1; $p <= $catalog['last_page']; $p++)
-        <a href="{{ route('admin.v1.setting.index', array_merge($filter, ['fe_page' => $p])) }}"
-           class="btn btn-xs {{ $p === $catalog['current_page'] ? 'btn-primary' : 'btn-secondary' }}">
-            {{ $p }}
-        </a>
-        @endfor
-        <span class="text-xs text-gray-500 ml-2">
-            Page {{ $catalog['current_page'] }} of {{ $catalog['last_page'] }} ({{ $catalog['total'] }} templates)
-        </span>
+    {{-- ===== Frontend Template Switcher (catalog 640, paginated + search) ===== --}}
+    <div class="tw-card p-6 mb-6">
+        <div class="flex items-center gap-2 mb-1">
+            <i class="fas fa-window-maximize" style="color:var(--primary)"></i>
+            <h2 class="text-lg font-bold" style="color:var(--primary)">Frontend Template</h2>
+        </div>
+        <p class="text-sm text-gray-500 mb-4">
+            Pilih desain halaman depan (landing) publik dari
+            <a href="https://github.com/lindoai/opentailwind" target="_blank" class="underline">opentailwind</a>
+            ({{ $paginateData['total'] }} template). Klik <b>Preview</b> untuk lihat penuh.
+            Template terpilih diunduh &amp; di-cache saat <b>Save</b>. Lihat hasilnya di
+            <a href="/" target="_blank" class="underline" style="color:var(--primary)">halaman depan ↗</a>.
+        </p>
+
+        {{-- Selected slug (submitted with the POST setting form). Persisted via
+             localStorage so it survives catalog page changes. --}}
+        <input type="hidden" id="fe_template_input" name="fe_template" value="{{ $feActive }}">
+
+        {{-- Search + category filter (GET, server-side) --}}
+        <div class="flex flex-wrap items-end gap-2 mb-4">
+            <div>
+                <label class="block text-xs text-gray-500 mb-1">Cari nama</label>
+                <input form="fe_search" type="text" name="q_name" value="{{ $filter['q_name'] ?? '' }}"
+                       placeholder="mis. agency, saas…" class="form-control" style="min-width:220px">
+            </div>
+            <div>
+                <label class="block text-xs text-gray-500 mb-1">Kategori</label>
+                <select form="fe_search" name="q_category" class="form-control" style="min-width:200px">
+                    <option value="">Semua kategori</option>
+                    @foreach($feCategories as $cat)
+                    <option value="{{ $cat }}" {{ ($filter['q_category'] ?? '') === $cat ? 'selected' : '' }}>{{ $cat }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <input form="fe_search" type="hidden" name="q_page_size" value="{{ $paginateData['page_size'] }}">
+            <button form="fe_search" type="submit" class="btn btn-success btn-sm" style="height:38px">
+                <i class="fas fa-search me-1"></i> Cari
+            </button>
+            <a href="{{ route('admin.v1.setting.index') }}" class="btn btn-danger btn-sm" style="height:38px">
+                <i class="fas fa-times me-1"></i> Reset
+            </a>
+        </div>
+
+        @if(count($feTemplates) === 0)
+        <div class="text-center text-gray-400 py-10">
+            <i class="fas fa-search fa-2x mb-2"></i>
+            <p>Tidak ada template yang cocok dengan pencarian.</p>
+        </div>
+        @endif
+
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            @foreach($feTemplates as $tpl)
+            <div class="fe-card block" data-slug="{{ $tpl['slug'] }}">
+                <div class="fe-swatch rounded-xl overflow-hidden border-2 transition {{ $feActive === $tpl['slug'] ? 'border-gray-900' : 'border-gray-300' }}"
+                     style="box-shadow:0 2px 8px rgba(0,0,0,.12)">
+                    {{-- Thumbnail: click → full preview (localStorage cache, lazy via IntersectionObserver) --}}
+                    <div class="fe-thumb fe-preview-trigger relative bg-gray-100 cursor-pointer group" data-slug="{{ $tpl['slug'] }}"
+                         data-name="{{ $tpl['name'] }}"
+                         style="height:140px;overflow:hidden;border-bottom:1px solid #d1d5db;border-top-left-radius:.7rem;border-top-right-radius:.7rem;transform:translateZ(0)"
+                         data-preview-url="{{ route('admin.v1.setting.fe_preview', $tpl['slug']) }}">
+                        <div class="fe-thumb-placeholder absolute inset-0 flex items-center justify-center text-gray-300">
+                            <i class="fas fa-spinner fa-spin"></i>
+                        </div>
+                        {{-- Preview hint overlay on hover --}}
+                        <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+                             style="background:rgba(0,0,0,.45);pointer-events:none">
+                            <span class="text-white text-sm font-semibold"><i class="fas fa-eye me-1"></i> Preview</span>
+                        </div>
+                    </div>
+                    <div class="bg-white py-2 px-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm font-semibold text-gray-800 truncate" title="{{ $tpl['name'] }}">{{ $tpl['name'] }}</span>
+                            <i class="fas fa-check-circle fe-check {{ $feActive === $tpl['slug'] ? '' : 'hidden' }}" style="color:var(--primary)"></i>
+                        </div>
+                        <span class="text-xs text-gray-400">{{ $tpl['category'] }}</span>
+                        <button type="button" class="fe-select btn btn-sm w-100 mt-2 fw-bold {{ $feActive === $tpl['slug'] ? 'btn-primary-tw' : 'btn-outline-dark' }}" style="font-size:13px;letter-spacing:.3px">
+                            @if($feActive === $tpl['slug'])<i class="fas fa-check me-1"></i> TERPILIH @else <i class="fas fa-hand-pointer me-1"></i> PILIH @endif
+                        </button>
+                    </div>
+                </div>
+            </div>
+            @endforeach
+        </div>
+
+        {{-- Catalog pagination --}}
+        @if($paginateData['total_page'] > 1)
+        @php
+            $pageUrl = fn (int $p) => route('admin.v1.setting.index', array_merge(array_filter($filter, fn ($v) => $v !== null && $v !== ''), ['q_page' => $p]));
+            $firstPage = $paginateData['pages'][0];
+            $lastPage = end($paginateData['pages']);
+        @endphp
+        <div class="d-flex justify-content-center mt-5">
+            <nav>
+                <ul class="pagination">
+                    @if($paginateData['current_page'] > 1)
+                    <li class="page-item"><a class="page-link" href="{{ $pageUrl($paginateData['current_page'] - 1) }}">Previous</a></li>
+                    @endif
+                    @if($firstPage > 1)
+                    <li class="page-item"><a class="page-link" href="{{ $pageUrl(1) }}">1</a></li>
+                    @if($firstPage > 2)<li class="page-item disabled"><span class="page-link">…</span></li>@endif
+                    @endif
+                    @foreach($paginateData['pages'] as $page)
+                    <li class="page-item {{ $page === $paginateData['current_page'] ? 'active' : '' }}"><a class="page-link" href="{{ $pageUrl($page) }}">{{ $page }}</a></li>
+                    @endforeach
+                    @if($lastPage < $paginateData['total_page'])
+                    @if($lastPage < $paginateData['total_page'] - 1)<li class="page-item disabled"><span class="page-link">…</span></li>@endif
+                    <li class="page-item"><a class="page-link" href="{{ $pageUrl($paginateData['total_page']) }}">{{ $paginateData['total_page'] }}</a></li>
+                    @endif
+                    @if($paginateData['current_page'] < $paginateData['total_page'])
+                    <li class="page-item"><a class="page-link" href="{{ $pageUrl($paginateData['current_page'] + 1) }}">Next</a></li>
+                    @endif
+                </ul>
+            </nav>
+        </div>
+        @endif
     </div>
-    @endif
-    @endif
-</div>
 
-{{-- ============================================================
-     SECTION 3: Settings Form
-     ============================================================ --}}
-<div class="tw-card">
-    <h2 class="text-lg font-semibold text-gray-700 mb-4">
-        <i class="fas fa-cog fa-fw text-gray-500"></i> Setting Form
-    </h2>
-
-    <form method="POST" action="{{ route('admin.v1.setting.update') }}?_method=PUT"
-          enctype="multipart/form-data">
-        @csrf
-
-        {{-- Hidden inputs for theme + fe_template (set by pickers above) --}}
-        <input type="hidden" id="theme_input" name="theme" value="{{ old('theme', $setting->theme ?? 'blue') }}">
-        <input type="hidden" id="fe_template_input" name="fe_template" value="{{ old('fe_template', $setting->fe_template ?? '') }}">
+    {{-- ===== Setting Form ===== --}}
+    <div class="tw-card p-6">
+        <h2 class="text-lg font-bold mb-4" style="color:var(--primary)">Setting Form</h2>
 
         <div class="grid md:grid-cols-2 gap-4">
             {{-- Initial --}}
@@ -178,7 +175,7 @@
 
             {{-- Name --}}
             <div>
-                <label class="form-label" for="name">Site Name</label>
+                <label class="form-label" for="name">App Name</label>
                 <input type="text" id="name" name="name" maxlength="200"
                        class="form-control @error('name') is-invalid @enderror"
                        value="{{ old('name', $setting->name) }}" placeholder="My Site">
@@ -208,7 +205,7 @@
                 <label class="form-label" for="copyright">Copyright</label>
                 <input type="text" id="copyright" name="copyright" maxlength="200"
                        class="form-control @error('copyright') is-invalid @enderror"
-                       value="{{ old('copyright', $setting->copyright) }}" placeholder="2024 My Company">
+                       value="{{ old('copyright', $setting->copyright) }}" placeholder="2026 My Company">
                 @error('copyright')<div class="invalid-feedback">{{ $message }}</div>@enderror
             </div>
 
@@ -254,7 +251,7 @@
 
             {{-- Logo --}}
             <div>
-                <label class="form-label" for="logo">Logo</label>
+                <label class="form-label" for="logo">Company Logo</label>
                 <input type="file" id="logo" name="logo" accept="image/*"
                        class="form-control @error('logo') is-invalid @enderror"
                        onchange="previewFile(this, 'logo-preview')">
@@ -289,197 +286,196 @@
             </div>
         </div>
 
-        {{-- Selected Template Display --}}
-        <div class="mt-4 p-3 bg-indigo-50 rounded border border-indigo-200 text-sm text-indigo-700">
-            <i class="fas fa-info-circle fa-fw"></i>
-            Selected Frontend Template: <strong id="fe-template-display">{{ old('fe_template', $setting->fe_template ?? 'none') }}</strong>
-        </div>
-
-        <div class="mt-6 flex gap-2">
-            <button type="submit" class="btn btn-primary">
-                <i class="fas fa-save fa-fw"></i> Save Settings
+        <div class="mt-6">
+            <button type="submit" class="btn btn-primary px-4 py-2">
+                <i class="fas fa-save me-1"></i> Save Setting
             </button>
         </div>
-    </form>
-</div>
+    </div>
+</form>
 
-{{-- ============================================================
-     Preview Modal
-     ============================================================ --}}
-<div id="fe-preview-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/70 p-4">
-    <div class="bg-white rounded-lg shadow-2xl flex flex-col" style="width:90vw;height:85vh;max-width:1200px">
+{{-- Full preview modal for FE templates --}}
+<div id="fe-preview-modal" class="hidden fixed inset-0 z-50 items-center justify-center" style="background:rgba(0,0,0,.6)">
+    <div class="bg-white rounded-xl overflow-hidden shadow-2xl" style="width:92vw;height:90vh;display:flex;flex-direction:column">
         <div class="flex items-center justify-between px-4 py-3 border-b">
-            <span class="font-semibold text-gray-700" id="fe-modal-title">Preview</span>
-            <button type="button" id="fe-modal-close" class="text-gray-400 hover:text-gray-700 text-xl">
-                <i class="fas fa-times"></i>
-            </button>
+            <h3 id="fe-preview-title" class="font-bold text-gray-800">Preview</h3>
+            <button id="fe-preview-close" type="button" class="btn btn-sm btn-danger"><i class="fas fa-times"></i> Tutup</button>
         </div>
-        <div class="flex-1 relative overflow-hidden">
-            <iframe id="fe-modal-iframe" class="absolute inset-0 w-full h-full border-0"
-                    sandbox="allow-same-origin"></iframe>
-            <div id="fe-modal-loading" class="absolute inset-0 flex items-center justify-center bg-white text-gray-400">
-                <i class="fas fa-spinner fa-spin fa-2x"></i>
-            </div>
-        </div>
-        <div class="px-4 py-3 border-t flex justify-between items-center">
-            <span id="fe-modal-slug" class="text-xs text-gray-400 font-mono"></span>
-            <button type="button" id="fe-modal-choose" class="btn btn-primary btn-sm">
-                <i class="fas fa-check fa-fw"></i> Choose This Template
-            </button>
-        </div>
+        <iframe id="fe-preview-frame" class="flex-1 w-full" style="border:0"></iframe>
     </div>
 </div>
 
 @push('foot-scripts')
 <script>
 (function () {
-    var STORAGE_PREFIX = 'fe_preview_v1_';
-    var previewRoute = '{{ rtrim(route('admin.v1.setting.index'), '/') }}/../setting/fe-preview/';
-
-    // ── Theme picker ──────────────────────────────────────────────────────────
-    document.querySelectorAll('.theme-radio').forEach(function (radio) {
-        radio.addEventListener('change', function () {
-            document.querySelectorAll('[data-theme]').forEach(function (card) {
-                card.classList.remove('border-gray-800', 'ring-2', 'ring-gray-400', 'bg-gray-50');
-                card.classList.add('border-gray-200');
-            });
-            var card = document.querySelector('[data-theme="' + this.value + '"]');
-            if (card) {
-                card.classList.remove('border-gray-200');
-                card.classList.add('border-gray-800', 'ring-2', 'ring-gray-400', 'bg-gray-50');
-            }
+    var THEMES = {
+        @foreach($themes as $themeKey => $colors)
+        "{{ $themeKey }}": { primary: "{{ $colors['primary'] }}", secondary: "{{ $colors['secondary'] }}", light: "{{ $colors['light'] }}", dark: "{{ $colors['dark'] }}" }{{ $loop->last ? '' : ',' }}
+        @endforeach
+    };
+    function applyTheme(name) {
+        var t = THEMES[name];
+        if (!t) return;
+        var root = document.documentElement;
+        root.style.setProperty('--primary', t.primary);
+        root.style.setProperty('--secondary', t.secondary);
+        root.style.setProperty('--theme-light', t.light);
+        root.style.setProperty('--theme-dark', t.dark);
+        document.querySelectorAll('.theme-swatch').forEach(function (sw) {
+            sw.classList.remove('border-gray-800'); sw.classList.add('border-transparent');
         });
-    });
-
-    // ── Load iframe previews with localStorage cache ─────────────────────────
-    function loadIframePreviews() {
-        document.querySelectorAll('.fe-preview-iframe').forEach(function (iframe) {
-            var slug = iframe.dataset.slug;
-            var previewUrl = iframe.dataset.previewUrl;
-            var cached = null;
-            try { cached = localStorage.getItem(STORAGE_PREFIX + slug); } catch(e){}
-
-            var loading = iframe.closest('.relative')?.querySelector('.fe-preview-loading');
-
-            function fillIframe(html) {
-                iframe.srcdoc = html;
-                if (loading) loading.style.display = 'none';
-            }
-
-            if (cached) {
-                fillIframe(cached);
-            } else {
-                fetch(previewUrl)
-                    .then(function(r) { return r.ok ? r.text() : Promise.reject(); })
-                    .then(function(html) {
-                        try { localStorage.setItem(STORAGE_PREFIX + slug, html); } catch(e){}
-                        fillIframe(html);
-                    })
-                    .catch(function() {
-                        if (loading) loading.innerHTML = '<span class="text-xs text-red-400">Preview unavailable</span>';
-                    });
+        document.querySelectorAll('.check-icon').forEach(function (ic) { ic.classList.add('hidden'); });
+        document.querySelectorAll('.theme-radio').forEach(function (r) {
+            if (r.value === name) {
+                var sw = r.parentElement.querySelector('.theme-swatch');
+                var ic = r.parentElement.querySelector('.check-icon');
+                if (sw) { sw.classList.remove('border-transparent'); sw.classList.add('border-gray-800'); }
+                if (ic) ic.classList.remove('hidden');
             }
         });
     }
-    loadIframePreviews();
+    document.querySelectorAll('.theme-radio').forEach(function (r) {
+        r.addEventListener('change', function () { applyTheme(r.value); });
+    });
 
-    // ── Choose template button ────────────────────────────────────────────────
-    function chooseTemplate(slug) {
-        document.getElementById('fe_template_input').value = slug;
-        document.getElementById('fe-template-display').textContent = slug;
+    // ===== Frontend Template catalog: HTML cached in localStorage =====
+    var LS_PREFIX = 'fe_tpl_html:';   // per-slug HTML cache
+    var LS_SEL = 'fe_tpl_selected';   // selected slug (persists across pages)
+    var input = document.getElementById('fe_template_input');
 
-        // Update button states in grid
-        document.querySelectorAll('.fe-choose-btn').forEach(function (btn) {
-            btn.textContent = 'CHOOSE';
-            btn.disabled = false;
-            btn.classList.remove('bg-indigo-600', 'text-white');
-        });
-        var card = document.querySelector('[data-slug="' + slug + '"]');
-        if (card) {
-            var chooseBtn = card.querySelector('.fe-choose-btn');
-            if (chooseBtn) {
-                chooseBtn.textContent = 'CHOSEN';
-                chooseBtn.disabled = true;
-                chooseBtn.classList.add('bg-indigo-600', 'text-white');
-            }
+    // Restore the selection from localStorage (e.g. after a catalog page change)
+    var savedSel = localStorage.getItem(LS_SEL);
+    if (savedSel && input) input.value = savedSel;
+
+    // opentailwind templates use the Tailwind v4 `dark:` variant which follows
+    // prefers-color-scheme by default. Force light in previews: (1) redefine the
+    // `dark` variant as class-based via <style type="text/tailwindcss"> — the
+    // iframe has no .dark so it stays light; (2) override color-scheme so native
+    // form controls/scrollbars do not go dark either.
+    function forceLight(html) {
+        var inject =
+            '<meta name="color-scheme" content="light">' +
+            '<style type="text/tailwindcss">@custom-variant dark (&:where(.dark, .dark *));</style>' +
+            '<style>:root{color-scheme:light !important}' +
+            '@media (prefers-color-scheme: dark){:root{color-scheme:light !important}}</style>';
+        if (/<head[^>]*>/i.test(html)) {
+            return html.replace(/<head[^>]*>/i, function (m) { return m + inject; });
         }
+        return inject + html;
     }
 
-    document.querySelectorAll('.fe-choose-btn').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-            chooseTemplate(this.dataset.slug);
-        });
-    });
-
-    // ── Full Preview Modal ────────────────────────────────────────────────────
-    var modal       = document.getElementById('fe-preview-modal');
-    var modalIframe = document.getElementById('fe-modal-iframe');
-    var modalTitle  = document.getElementById('fe-modal-title');
-    var modalSlug   = document.getElementById('fe-modal-slug');
-    var modalLoad   = document.getElementById('fe-modal-loading');
-    var modalChoose = document.getElementById('fe-modal-choose');
-    var currentModalSlug = '';
-
-    function openModal(slug, previewUrl) {
-        currentModalSlug = slug;
-        modalTitle.textContent = 'Preview: ' + slug;
-        modalSlug.textContent  = slug;
-        modalLoad.style.display = 'flex';
-        modalIframe.srcdoc = '';
-        modal.classList.remove('hidden');
-
+    // Get one template's HTML: from localStorage or fetch from server then cache.
+    function getHtml(slug, url) {
         var cached = null;
-        try { cached = localStorage.getItem(STORAGE_PREFIX + slug); } catch(e){}
-
-        function setContent(html) {
-            modalIframe.srcdoc = html;
-            modalLoad.style.display = 'none';
-        }
-
-        if (cached) {
-            setContent(cached);
-        } else {
-            fetch(previewUrl)
-                .then(function(r) { return r.ok ? r.text() : Promise.reject(); })
-                .then(function(html) {
-                    try { localStorage.setItem(STORAGE_PREFIX + slug, html); } catch(e){}
-                    setContent(html);
-                })
-                .catch(function() {
-                    modalLoad.innerHTML = '<span class="text-red-500">Preview unavailable</span>';
-                });
-        }
+        try { cached = localStorage.getItem(LS_PREFIX + slug); } catch (e) {}
+        if (cached) return Promise.resolve(cached);
+        return fetch(url, { credentials: 'same-origin' })
+            .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+            .then(function (html) {
+                try { localStorage.setItem(LS_PREFIX + slug, html); } catch (e) { /* quota full: skip */ }
+                return html;
+            });
     }
 
-    document.querySelectorAll('.fe-full-preview-btn').forEach(function (btn) {
-        btn.addEventListener('click', function (e) {
-            e.stopPropagation();
-            openModal(this.dataset.slug, this.dataset.previewUrl);
+    // Render a thumbnail iframe (scaled down so it looks like a screenshot).
+    function renderThumb(box) {
+        var slug = box.getAttribute('data-slug');
+        var url = box.getAttribute('data-preview-url');
+        getHtml(slug, url).then(function (html) {
+            var ph = box.querySelector('.fe-thumb-placeholder');
+            if (ph) ph.remove();
+            var ifr = document.createElement('iframe');
+            ifr.setAttribute('scrolling', 'no');
+            ifr.setAttribute('loading', 'lazy');
+            // Dynamic scale = card width / 1280 → thumbnail fills the card width
+            // edge-to-edge; the 1280px-wide render is clipped to 140px height.
+            var DESIGN_W = 1280;
+            var scale = (box.clientWidth || 280) / DESIGN_W;
+            ifr.style.cssText = 'width:' + DESIGN_W + 'px;height:' + Math.ceil(140 / scale) +
+                'px;border:0;transform:scale(' + scale + ');transform-origin:top left;pointer-events:none';
+            ifr.srcdoc = forceLight(html);
+            box.appendChild(ifr);
+        }).catch(function () {
+            var ph = box.querySelector('.fe-thumb-placeholder');
+            if (ph) ph.innerHTML = '<i class="fas fa-image fa-2x"></i>';
+        });
+    }
+
+    // Lazy-load thumbnails as cards become visible (saves bandwidth & CPU).
+    var thumbs = document.querySelectorAll('.fe-thumb');
+    if ('IntersectionObserver' in window) {
+        var io = new IntersectionObserver(function (entries) {
+            entries.forEach(function (en) {
+                if (en.isIntersecting) { renderThumb(en.target); io.unobserve(en.target); }
+            });
+        }, { rootMargin: '200px' });
+        thumbs.forEach(function (t) { io.observe(t); });
+    } else {
+        thumbs.forEach(renderThumb);
+    }
+
+    // Select a template → set hidden input + persist to localStorage + update UI.
+    function selectSlug(slug) {
+        if (input) input.value = slug;
+        try { localStorage.setItem(LS_SEL, slug); } catch (e) {}
+        document.querySelectorAll('.fe-card').forEach(function (card) {
+            var active = card.getAttribute('data-slug') === slug;
+            var swatch = card.querySelector('.fe-swatch');
+            var check = card.querySelector('.fe-check');
+            var btn = card.querySelector('.fe-select');
+            swatch.classList.toggle('border-gray-900', active);
+            swatch.classList.toggle('border-gray-300', !active);
+            if (check) check.classList.toggle('hidden', !active);
+            if (btn) {
+                btn.innerHTML = active
+                    ? '<i class="fas fa-check me-1"></i> TERPILIH'
+                    : '<i class="fas fa-hand-pointer me-1"></i> PILIH';
+                btn.classList.toggle('btn-primary-tw', active);
+                btn.classList.toggle('btn-outline-dark', !active);
+            }
+        });
+    }
+
+    document.querySelectorAll('.fe-select').forEach(function (b) {
+        b.addEventListener('click', function () {
+            selectSlug(this.closest('.fe-card').getAttribute('data-slug'));
         });
     });
+    // Sync the initial view with the stored selection.
+    if (input && input.value) selectSlug(input.value);
 
-    document.getElementById('fe-modal-close').addEventListener('click', function () {
-        modal.classList.add('hidden');
-        modalIframe.srcdoc = '';
-    });
+    // On Save, the submitted selection becomes the server-side truth — drop the
+    // sticky localStorage selection so future visits reflect the DB value.
+    var settingForm = input ? input.closest('form') : null;
+    if (settingForm) {
+        settingForm.addEventListener('submit', function () {
+            try { localStorage.removeItem(LS_SEL); } catch (e) {}
+        });
+    }
 
-    modal.addEventListener('click', function (e) {
-        if (e.target === modal) {
-            modal.classList.add('hidden');
-            modalIframe.srcdoc = '';
-        }
+    // ===== Full preview modal =====
+    var modal = document.getElementById('fe-preview-modal');
+    var frame = document.getElementById('fe-preview-frame');
+    var title = document.getElementById('fe-preview-title');
+    function openModal(slug, name, url) {
+        title.textContent = name;
+        frame.srcdoc = '<div style="font-family:sans-serif;padding:40px">Memuat…</div>';
+        modal.classList.remove('hidden'); modal.classList.add('flex');
+        getHtml(slug, url).then(function (html) { frame.srcdoc = forceLight(html); })
+            .catch(function () { frame.srcdoc = '<p style="padding:40px;font-family:sans-serif">Gagal memuat preview.</p>'; });
+    }
+    function closeModal() { modal.classList.add('hidden'); modal.classList.remove('flex'); frame.srcdoc = ''; }
+    document.querySelectorAll('.fe-preview-trigger').forEach(function (b) {
+        b.addEventListener('click', function () {
+            openModal(this.getAttribute('data-slug'), this.getAttribute('data-name'), this.getAttribute('data-preview-url'));
+        });
     });
-
-    modalChoose.addEventListener('click', function () {
-        if (currentModalSlug) {
-            chooseTemplate(currentModalSlug);
-            modal.classList.add('hidden');
-            modalIframe.srcdoc = '';
-        }
-    });
+    document.getElementById('fe-preview-close').addEventListener('click', closeModal);
+    modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeModal(); });
 })();
 
-// ── File preview helper ────────────────────────────────────────────────────────
+// ── File preview helper ──────────────────────────────────────────────────────
 function previewFile(input, previewId) {
     var preview = document.getElementById(previewId);
     if (!preview) return;

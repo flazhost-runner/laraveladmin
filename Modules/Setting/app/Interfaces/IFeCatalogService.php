@@ -4,9 +4,22 @@ namespace Modules\Setting\app\Interfaces;
 
 interface IFeCatalogService
 {
-    public function getCatalog(array $filter): array; // paginated list with meta
+    /** Full catalog (640 opentailwind landings; curated fallback offline). */
+    public function list(): array;
 
-    public function previewHtml(string $slug): string; // proxy + cache
+    /** Sorted unique categories for the filter UI. */
+    public function categories(): array;
 
-    public function ensure(string $slug): void;       // download + cache locally
+    /**
+     * Server-side filter (q_name / q_category) + pagination (q_page /
+     * q_page_size). $pinSlug pins the active template to page 1.
+     * Returns ['datas' => [...], 'paginate_data' => [...]].
+     */
+    public function paginate(array $filter, ?string $pinSlug = null): array;
+
+    /** True when the slug exists in the catalog (anti-SSRF whitelist). */
+    public function has(string $slug): bool;
+
+    /** Raw HTML of one template (for thumbnails/preview modal). */
+    public function previewHtml(string $slug): string;
 }
