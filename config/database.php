@@ -3,6 +3,30 @@
 use Illuminate\Support\Str;
 use Pdo\Mysql;
 
+/*
+| Managed Redis (flazhost) di-terminate TLS di belakang HAProxy yang me-routing
+| berdasarkan TLS SNI pada satu port bersama. Klien TLS yang TIDAK mengirim SNI
+| servername akan diputus koneksinya → crash-loop → 504. REDIS_URL berformat
+| rediss://... sudah benar; perbaikannya di sisi klien: pastikan SNI (peer_name)
+| = host dari REDIS_URL. Konteks di bawah HANYA aktif saat koneksi TLS.
+*/
+$redisUrl = env('REDIS_URL');
+$redisHost = is_string($redisUrl) ? (parse_url($redisUrl, PHP_URL_HOST) ?: null) : null;
+$redisScheme = is_string($redisUrl) ? strtolower((string) parse_url($redisUrl, PHP_URL_SCHEME)) : '';
+$redisIsTls = in_array($redisScheme, ['rediss', 'tls'], true)
+    || filter_var(env('REDIS_TLS', false), FILTER_VALIDATE_BOOLEAN);
+$redisTlsVerify = filter_var(env('REDIS_TLS_VERIFY', true), FILTER_VALIDATE_BOOLEAN);
+
+$redisTlsContext = ($redisIsTls && $redisHost)
+    ? ['ssl' => [
+        // SNI: HAProxy butuh servername ini untuk me-route ke instance yang benar.
+        'SNI_enabled' => true,
+        'peer_name' => $redisHost,
+        'verify_peer' => $redisTlsVerify,
+        'verify_peer_name' => $redisTlsVerify,
+    ]]
+    : null;
+
 return [
 
     /*
@@ -160,6 +184,7 @@ return [
             'password' => env('REDIS_PASSWORD'),
             'port' => env('REDIS_PORT', '6379'),
             'database' => env('REDIS_DB', '0'),
+            'context' => $redisTlsContext,
             'max_retries' => env('REDIS_MAX_RETRIES', 3),
             'backoff_algorithm' => env('REDIS_BACKOFF_ALGORITHM', 'decorrelated_jitter'),
             'backoff_base' => env('REDIS_BACKOFF_BASE', 100),
@@ -173,6 +198,7 @@ return [
             'password' => env('REDIS_PASSWORD'),
             'port' => env('REDIS_PORT', '6379'),
             'database' => env('REDIS_CACHE_DB', '1'),
+            'context' => $redisTlsContext,
             'max_retries' => env('REDIS_MAX_RETRIES', 3),
             'backoff_algorithm' => env('REDIS_BACKOFF_ALGORITHM', 'decorrelated_jitter'),
             'backoff_base' => env('REDIS_BACKOFF_BASE', 100),
