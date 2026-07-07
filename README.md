@@ -21,6 +21,7 @@ cp .env.example .env
 php artisan key:generate
 # Set JWT_SECRET, DB credentials in .env
 php artisan migrate:fresh --seed
+php artisan storage:link   # symlink public/storage -> storage/app/public (local uploads)
 php artisan serve
 # Open http://localhost:8000
 # Admin: admin@laraveladmin.test / Admin@1234
@@ -36,6 +37,59 @@ php artisan serve
 - FormRequest validation (anti mass-assignment)
 - Method override (PUT/DELETE from HTML forms)
 - APP_MODE=full|api (runtime variant)
+
+## Storage & switching backends
+
+Upload media (modul `Media`) memakai adapter generik `STORAGE_DRIVER` — **ganti backend cukup dengan edit `.env` + restart, tanpa ubah kode/view.** `STORAGE_DRIVER` dipetakan ke disk Laravel di `config/filesystems.php` (`storage_driver`), lalu `MediaService` memilih disk berdasarkan nilainya:
+
+| `STORAGE_DRIVER` | Disk Laravel | URL render yang dihasilkan |
+|---|---|---|
+| `local` (default) | `public` (`storage/app/public`) | `APP_URL/storage/<key>` — dilayani lewat symlink `public/storage` |
+| `oss` | `oss` (S3-compatible, path-style) | URL absolut dari endpoint OSS |
+| `s3` | `s3` (AWS S3 / kompatibel) | URL absolut dari endpoint/bucket S3 |
+
+DB (konten editor / setting) menyimpan **URL absolut** yang dihitung server saat upload lewat `Storage::disk(...)->url(key)`; `key` (object path, mis. `media/xxx.png`) dipakai untuk hapus. `<img>` merender sama untuk semua driver karena URL selalu absolut & benar per-driver.
+
+### Local
+
+File tersimpan di `storage/app/public/media/`. Agar bisa diakses web di `APP_URL/storage/...`, jalankan sekali:
+
+```bash
+php artisan storage:link   # membuat symlink public/storage -> storage/app/public
+```
+
+Sudah termasuk di `composer setup`. **Pada tiap deploy** (server baru / rilis `public/` yang bersih), symlink harus dibuat ulang — jalankan `php artisan storage:link` di langkah deploy.
+
+### OSS / S3
+
+```dotenv
+STORAGE_DRIVER=s3            # atau: oss
+STORAGE_ACCESS_KEY_ID=...
+STORAGE_SECRET_ACCESS_KEY=...
+STORAGE_BUCKET=...
+STORAGE_ENDPOINT=https://...
+STORAGE_REGION=...
+```
+
+Restart aplikasi (dan `php artisan config:clear` bila config di-cache). Upload berikutnya langsung mengembalikan URL absolut objek — tidak perlu `storage:link`.
+
+### Ganti backend / migrasi data
+
+Ganti backend **tidak** memindahkan file yang sudah ada — URL lama di DB tetap menunjuk lokasi lama. Untuk memindahkan objek yang sudah ada:
+
+```bash
+# ke S3
+aws s3 sync storage/app/public/media s3://<bucket>/media
+# ke Alibaba OSS
+ossutil cp -r storage/app/public/media oss://<bucket>/media
+```
+
+Lalu (opsional) perbarui URL lama yang tersimpan di DB agar menunjuk endpoint baru.
+
+### Catatan operasional
+
+- Upload di-`.gitignore` (lihat `storage/app/public/.gitignore` = `*` kecuali `.gitignore`) — folder tetap ada di repo, isinya tidak. `public/storage` juga gitignored (artefak deploy).
+- **Local di produksi bersifat ephemeral**: pada container/PaaS, `storage/app/public` hilang tiap redeploy. Mount **persistent volume** ke `storage/app/public` (dan pastikan `storage:link` dijalankan setelah deploy), atau gunakan `oss`/`s3` untuk produksi.
 
 ## Testing
 
