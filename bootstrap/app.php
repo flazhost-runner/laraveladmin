@@ -20,6 +20,19 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Trust the reverse proxy (e.g. CapRover) which terminates TLS and
+        // forwards over HTTP with X-Forwarded-* headers. Without this,
+        // $request->secure() is false behind the proxy → Secure session/CSRF
+        // cookies are dropped and generated URLs are http, breaking web login.
+        $middleware->trustProxies(
+            at: '*',
+            headers: Request::HEADER_X_FORWARDED_FOR
+                | Request::HEADER_X_FORWARDED_HOST
+                | Request::HEADER_X_FORWARDED_PORT
+                | Request::HEADER_X_FORWARDED_PROTO
+                | Request::HEADER_X_FORWARDED_AWS_ELB
+        );
+
         // Method override BEFORE everything
         $middleware->prepend(MethodOverride::class);
 
