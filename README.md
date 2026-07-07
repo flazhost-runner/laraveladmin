@@ -44,6 +44,17 @@ php artisan test
 composer check  # pint + phpstan + test
 ```
 
+## API
+
+REST API di-prefix `/api/v1` dengan auth JWT (`Authorization: Bearer <token>`).
+
+Postman collection: [`docs/postman/LaravelAdmin.postman_collection.json`](docs/postman/LaravelAdmin.postman_collection.json).
+
+- Import ke Postman, lalu set variable `base_url` (default `http://localhost:8000`, sesuai `php artisan serve`).
+- Isi `access_token` dari response login untuk request yang butuh auth.
+
+Catatan: endpoint "get one" di port ini adalah `GET /api/v1/access/{resource}/{id}` (idiomatik Laravel), sedikit berbeda dari path `/:id/edit` bawaan NodeAdmin pada collection.
+
 ## Creating a new module
 
 ```bash
