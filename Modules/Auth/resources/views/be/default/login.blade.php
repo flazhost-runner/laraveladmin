@@ -4,12 +4,12 @@
 <div class="tw-card w-full max-w-5xl overflow-hidden grid md:grid-cols-2">
     <!-- Left: image panel -->
     <div class="sidebar-gradient hidden md:flex items-center justify-center p-10">
-        <img src="{{ asset('modules/setting/login-image.png') }}" alt="Login" class="max-h-64 object-contain">
+        <img src="{{ getFile($setting?->login_image) }}" alt="Login" class="max-h-64 object-contain">
     </div>
     <!-- Right: form -->
     <div class="p-8">
         <div class="mb-6 text-center">
-            <img src="{{ $setting?->logo }}" alt="Logo" class="h-14 mx-auto object-contain mb-4">
+            <img src="{{ getFile($setting?->logo) }}" alt="Logo" class="h-14 mx-auto object-contain mb-4">
             <h1 class="text-2xl font-bold" style="color:var(--primary)">Hello, Welcome Back!</h1>
             <p class="text-sm text-gray-500 mt-1">Enter your credentials to continue</p>
         </div>

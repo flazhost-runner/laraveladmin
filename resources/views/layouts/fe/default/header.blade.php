@@ -4,7 +4,7 @@
  <!-- Logo — bound to Setting (logo + name). Falls back to the bundled icon. -->
  <a data-motion="logo" href="/" class="flex items-center gap-2.5">
  @if($setting?->logo)
- <img src="{{ Str::startsWith($setting->logo, 'http') ? $setting->logo : asset('storage/'.$setting->logo) }}" alt="{{ $setting?->name ?? 'Logo' }}" class="w-10 h-10 rounded-xl object-contain bg-white">
+ <img src="{{ getFile($setting->logo) }}" alt="{{ $setting?->name ?? 'Logo' }}" class="w-10 h-10 rounded-xl object-contain bg-white">
  @else
  <div data-motion="icon" class="w-10 h-10 bg-linear-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center">
  <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">

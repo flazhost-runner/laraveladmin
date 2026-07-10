@@ -4,7 +4,7 @@
 <div class="tw-card w-full max-w-md overflow-hidden">
     <div class="p-8">
         <div class="mb-6 text-center">
-            <img src="{{ $setting?->logo }}" alt="Logo" class="h-14 mx-auto object-contain mb-4">
+            <img src="{{ getFile($setting?->logo) }}" alt="Logo" class="h-14 mx-auto object-contain mb-4">
             <h1 class="text-2xl font-bold" style="color:var(--primary)">Reset Password</h1>
             <p class="text-sm text-gray-500 mt-1">Enter Your New Password</p>
         </div>

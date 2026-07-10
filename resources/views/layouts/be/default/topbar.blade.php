@@ -12,7 +12,7 @@
     <div class="dropdown ml-auto">
         <button class="dropdown-toggle flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900" data-toggle-dd="user-dd">
             @if(auth_user()?->picture)
-                <img src="{{ auth_user()->picture }}" class="w-8 h-8 rounded-full object-cover" onerror="this.style.display='none'">
+                <img src="{{ getFile(auth_user()->picture) }}" alt="user" class="w-8 h-8 rounded-full object-cover">
             @else
                 <span class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold" style="background:var(--primary)">
                     {{ strtoupper(substr(auth_user()?->name ?? 'U', 0, 1)) }}

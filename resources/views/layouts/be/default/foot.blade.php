@@ -118,22 +118,36 @@
         });
     }, 3500);
 
-    /* ── Global image fallback ── */
-    document.addEventListener('error', function(e) {
-        var img = e.target;
-        if (img.tagName !== 'IMG') return;
-        var alt = (img.alt || '').toLowerCase();
-        var cls = (img.className || '').toLowerCase();
-        var isAvatar = /user|picture|avatar|rounded-full/.test(alt + cls);
+    /* ── Global image fallback (paritas NodeAdmin foot.ejs) ──
+       Gambar gagal-load diganti kotak ikon FA: fa-user utk avatar, fa-image
+       utk umum; bentuk bulat hanya bila kelasnya memang bulat; ukuran mengikuti
+       dimensi gambar; node img di-REPLACE (bukan sekadar disembunyikan). */
+    function imgPlaceholder(img) {
+        if (img.dataset.imgFallback) return; // cegah loop
+        img.dataset.imgFallback = '1';
+        var cls = (img.className || '') + ' ' + (img.getAttribute('alt') || '');
+        var isAvatar = /img-profile|picture|avatar|user/i.test(cls);
+        var isCircle = /rounded-full|rounded-circle|img-profile/i.test(cls);
         var icon = isAvatar ? 'fa-user' : 'fa-image';
-        var w = img.width || img.naturalWidth || 48;
-        var h = img.height || img.naturalHeight || 48;
-        img.style.display = 'none';
-        var span = document.createElement('span');
-        span.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;background:#e5e7eb;border-radius:0.25rem;width:' + w + 'px;height:' + h + 'px;color:#9ca3af;';
-        span.innerHTML = '<i class="fas ' + icon + '"></i>';
-        img.parentNode && img.parentNode.insertBefore(span, img.nextSibling);
+        var w = img.getAttribute('width') || img.offsetWidth || 40;
+        var h = img.getAttribute('height') || img.offsetHeight || 40;
+        var box = document.createElement('span');
+        box.className = 'img-placeholder ' + (img.className || '');
+        box.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;' +
+            'width:' + w + 'px;height:' + h + 'px;background:#f1f5f9;color:#94a3b8;' +
+            (isCircle ? 'border-radius:9999px;' : 'border-radius:.5rem;');
+        box.innerHTML = '<i class="fas ' + icon + '" style="font-size:' + Math.max(14, Math.min(w, h) * 0.45) + 'px"></i>';
+        if (img.parentNode) img.parentNode.replaceChild(box, img);
+    }
+    /* Tangkap error load di fase capture (event 'error' tidak bubbling) */
+    document.addEventListener('error', function(e) {
+        if (e.target && e.target.tagName === 'IMG') imgPlaceholder(e.target);
     }, true);
+    /* Gambar yang sudah gagal / src kosong sebelum handler terpasang
+       (paritas NodeAdmin: tanpa guard src → preview kosong pun jadi kotak ikon) */
+    document.querySelectorAll('img').forEach(function(img) {
+        if (img.complete && img.naturalWidth === 0) imgPlaceholder(img);
+    });
 
     /* ── previewImage: file input → inline preview ── */
     window.previewImage = function(input) {

@@ -4,7 +4,7 @@
     <div class="px-4 py-4 border-b border-white/10">
         <a href="{{ route('admin.v1.dashboard.index') }}" class="flex items-center gap-2">
             @if($setting?->logo)
-                <img src="{{ $setting->logo }}" alt="Logo" class="h-8 w-8 rounded object-cover" onerror="this.style.display='none'">
+                <img src="{{ getFile($setting->logo) }}" alt="Logo" class="h-8 w-8 rounded object-cover">
             @else
                 <i class="fas fa-chart-line text-white text-xl"></i>
             @endif

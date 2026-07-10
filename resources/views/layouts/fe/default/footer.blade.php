@@ -24,7 +24,7 @@
       <div data-motion="brand" class="lg:col-span-1">
         <a href="/" class="flex items-center gap-3 mb-6">
           @if($setting?->logo)
-          <img src="{{ Str::startsWith($setting->logo, 'http') ? $setting->logo : asset('storage/'.$setting->logo) }}" alt="{{ $setting?->name ?? 'Logo' }}" class="w-10 h-10 rounded-xl object-contain bg-white">
+          <img src="{{ getFile($setting->logo) }}" alt="{{ $setting?->name ?? 'Logo' }}" class="w-10 h-10 rounded-xl object-contain bg-white">
           @else
           <div data-motion="icon" class="w-10 h-10 bg-linear-to-br from-orange-400 to-orange-500 rounded-xl flex items-center justify-center">
             <svg class="w-6 h-6 text-neutral-900 dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
