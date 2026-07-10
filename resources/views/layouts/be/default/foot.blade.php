@@ -3,9 +3,10 @@
 <!-- Select2 -->
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-<!-- Trumbowyg -->
+<!-- Trumbowyg (+ plugin File Manager → endpoint /admin/v1/media, paritas NodeAdmin) -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/trumbowyg@2.27.3/dist/ui/trumbowyg.min.css">
 <script src="https://cdn.jsdelivr.net/npm/trumbowyg@2.27.3/dist/trumbowyg.min.js"></script>
+<script src="{{ asset('be/default/vendor/trumbowyg/filemanager.js') }}"></script>
 <!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
@@ -19,13 +20,17 @@
                 ['viewHTML'],
                 ['formatting'],
                 ['strong', 'em', 'del'],
+                ['superscript', 'subscript'],
                 ['link'],
-                ['justifyLeft', 'justifyCenter', 'justifyRight'],
+                ['filemanager'],
+                ['justifyLeft', 'justifyCenter', 'justifyRight', 'justifyFull'],
                 ['unorderedList', 'orderedList'],
                 ['horizontalRule'],
                 ['removeformat'],
                 ['fullscreen'],
             ],
+            plugins: { filemanager: true },
+            semantic: { div: 'div' },
             autogrow: true,
             removeformatPasted: true,
         });

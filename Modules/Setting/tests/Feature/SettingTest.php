@@ -6,7 +6,9 @@ use App\Models\Role;
 use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class SettingTest extends TestCase
@@ -100,5 +102,29 @@ class SettingTest extends TestCase
 
         $response->assertRedirect(route('admin.v1.setting.index'));
         $this->assertDatabaseHas('settings', ['fe_template' => 'portfolio-001-personal-portfolio']);
+    }
+
+    public function test_setting_update_uploads_logo_file(): void
+    {
+        Storage::fake('public');
+        $this->actingAsAdmin();
+
+        $s = new Setting;
+        $s->forceFill(['name' => 'TestSite', 'theme' => 'blue', 'fe_template' => 'agency-consulting-002-creative-agency']);
+        $s->save();
+
+        $response = $this->put('/admin/v1/setting/update', [
+            'name' => 'TestSite',
+            'theme' => 'blue',
+            'fe_template' => 'agency-consulting-002-creative-agency',
+            'logo' => UploadedFile::fake()->image('logo.png', 200, 80),
+        ]);
+
+        $response->assertRedirect(route('admin.v1.setting.index'));
+
+        // Kunci modul + konversi webp (paritas NodeAdmin: modules/setting/<timestamp>_<rand>.webp).
+        $logo = Setting::query()->first()->logo;
+        $this->assertMatchesRegularExpression('#^modules/setting/[0-9\-_]+[ap]m_\d+\.webp$#', $logo);
+        Storage::disk('public')->assertExists($logo);
     }
 }

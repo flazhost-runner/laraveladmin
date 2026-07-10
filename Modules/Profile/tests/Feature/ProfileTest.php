@@ -5,8 +5,10 @@ namespace Modules\Profile\Tests\Feature;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class ProfileTest extends TestCase
@@ -90,115 +92,125 @@ class ProfileTest extends TestCase
     // Profile Update
     // ─────────────────────────────────────────────────────────────
 
+    /** Payload lengkap sesuai kontrak form NodeAdmin (code/name/email/status wajib). */
+    private function validPayload(User $user, array $overrides = []): array
+    {
+        return array_merge([
+            'code' => $user->code,
+            'name' => $user->name,
+            'phone' => $user->phone,
+            'email' => $user->email,
+            'timezone' => 'Asia/Jakarta',
+            'status' => 'Active',
+        ], $overrides);
+    }
+
     public function test_profile_update_changes_name_and_phone(): void
     {
         $user = $this->actingAsAdmin();
 
-        $response = $this->put('/admin/v1/profile/update', [
+        $response = $this->put('/admin/v1/profile/update', $this->validPayload($user, [
             'name' => 'Updated Name',
             'phone' => '+62 812 9999 0000',
-        ]);
+        ]));
 
-        $response->assertRedirect(route('admin.v1.profile.index'));
+        // Paritas NodeAdmin: sukses redirect ke dashboard.
+        $response->assertRedirect(route('admin.v1.dashboard.index'));
         $response->assertSessionHas('success');
 
         $this->assertDatabaseHas('users', [
             'id' => $user->id,
             'name' => 'Updated Name',
             'phone' => '+62 812 9999 0000',
+            'timezone' => 'Asia/Jakarta',
         ]);
     }
 
-    public function test_profile_update_with_picture_url(): void
+    public function test_profile_update_uploads_picture_file(): void
+    {
+        Storage::fake('public');
+        $user = $this->actingAsAdmin();
+
+        $response = $this->put('/admin/v1/profile/update', $this->validPayload($user, [
+            'picture' => UploadedFile::fake()->image('avatar.png', 100, 100),
+        ]));
+
+        $response->assertRedirect(route('admin.v1.dashboard.index'));
+
+        // Kunci deterministik per user + konversi webp (paritas NodeAdmin fileService).
+        $expectedKey = 'modules/access/user/'.$user->id.'.webp';
+        $this->assertDatabaseHas('users', ['id' => $user->id, 'picture' => $expectedKey]);
+        Storage::disk('public')->assertExists($expectedKey);
+    }
+
+    public function test_profile_update_rejects_picture_url_string(): void
     {
         $user = $this->actingAsAdmin();
 
-        $response = $this->put('/admin/v1/profile/update', [
-            'name' => $user->name,
+        $response = $this->put('/admin/v1/profile/update', $this->validPayload($user, [
             'picture' => 'https://example.com/avatar.png',
-        ]);
+        ]));
 
-        $response->assertRedirect(route('admin.v1.profile.index'));
-
-        $this->assertDatabaseHas('users', [
-            'id' => $user->id,
-            'picture' => 'https://example.com/avatar.png',
-        ]);
+        // picture kini FILE upload — string URL harus ditolak validasi.
+        $response->assertSessionHasErrors('picture');
     }
 
-    public function test_profile_update_requires_name(): void
+    public function test_profile_update_requires_name_code_email_status(): void
     {
         $this->actingAsAdmin();
 
         $response = $this->put('/admin/v1/profile/update', [
             'name' => '',
+            'code' => '',
+            'email' => '',
+            'status' => '',
         ]);
 
-        $response->assertSessionHasErrors('name');
+        $response->assertSessionHasErrors(['name', 'code', 'email', 'status']);
     }
 
     // ─────────────────────────────────────────────────────────────
-    // Change Password
+    // Password inline di form update (paritas NodeAdmin)
     // ─────────────────────────────────────────────────────────────
 
-    public function test_change_password_succeeds_with_correct_current_password(): void
+    public function test_profile_update_changes_password_inline(): void
     {
         $user = $this->makeUser('change.pass@test.com', 'Pass User', 'oldpassword');
         $this->loginAs($user);
 
-        $response = $this->put('/admin/v1/profile/change-password', [
-            'current_password' => 'oldpassword',
+        $response = $this->put('/admin/v1/profile/update', $this->validPayload($user, [
             'password' => 'newpassword123',
             'password_confirmation' => 'newpassword123',
-        ]);
+        ]));
 
-        $response->assertRedirect(route('admin.v1.profile.index'));
-        $response->assertSessionHas('success');
+        $response->assertRedirect(route('admin.v1.dashboard.index'));
 
         $user->refresh();
         $this->assertTrue(Hash::check('newpassword123', $user->password));
     }
 
-    public function test_change_password_fails_with_wrong_current_password(): void
-    {
-        $user = $this->makeUser('wrong.pass@test.com', 'Wrong Pass User', 'correctpassword');
-        $this->loginAs($user);
-
-        $response = $this->put('/admin/v1/profile/change-password', [
-            'current_password' => 'wrongpassword',
-            'password' => 'newpassword123',
-            'password_confirmation' => 'newpassword123',
-        ]);
-
-        // Should not be a 2xx success — the service throws a ValidationAppException
-        // which is handled as a 422 or redirect-with-error
-        $this->assertNotEquals(200, $response->status());
-    }
-
-    public function test_change_password_requires_confirmation(): void
+    public function test_profile_update_password_requires_confirmation(): void
     {
         $user = $this->makeUser('confirm.pass@test.com', 'Confirm User', 'testpassword');
         $this->loginAs($user);
 
-        $response = $this->put('/admin/v1/profile/change-password', [
-            'current_password' => 'testpassword',
+        $response = $this->put('/admin/v1/profile/update', $this->validPayload($user, [
             'password' => 'newpassword123',
             'password_confirmation' => 'mismatch',
-        ]);
+        ]));
 
         $response->assertSessionHasErrors('password');
     }
 
-    public function test_change_password_enforces_minimum_length(): void
+    public function test_profile_update_password_enforces_minimum_length(): void
     {
         $user = $this->makeUser('short.pass@test.com', 'Short User', 'testpassword');
         $this->loginAs($user);
 
-        $response = $this->put('/admin/v1/profile/change-password', [
-            'current_password' => 'testpassword',
+        $response = $this->put('/admin/v1/profile/update', $this->validPayload($user, [
             'password' => 'short',
             'password_confirmation' => 'short',
-        ]);
+        ]));
 
         $response->assertSessionHasErrors('password');
     }

@@ -42,11 +42,12 @@ class SettingService implements ISettingService
             throw new AppException('Template tidak dikenali', 400);
         }
 
-        // Handle file uploads
+        // Handle file uploads — driver-aware + konversi webp via storeImage()
+        // (paritas NodeAdmin SettingService: kunci modules/setting/<timestamp>_<rand>).
         foreach (['icon', 'logo', 'login_image'] as $field) {
             if (! empty($data[$field]) && $data[$field] instanceof UploadedFile) {
-                $path = $data[$field]->store("settings/{$field}", 'public');
-                $data[$field] = $path;
+                $stem = 'modules/setting/'.now()->format('Y-m-d_hi').strtolower(now()->format('a')).'_'.random_int(1, 10000);
+                $data[$field] = storeImage($data[$field], $stem);
             } else {
                 // Keep existing value if not a new upload
                 unset($data[$field]);

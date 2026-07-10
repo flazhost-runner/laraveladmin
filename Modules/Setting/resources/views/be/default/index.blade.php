@@ -160,137 +160,113 @@
     </div>
 
     {{-- ===== Setting Form ===== --}}
+    {{-- Replika 1:1 NodeAdmin setting index.ejs: satu kolom, label ber-bracket key,
+         urutan initial→name→description→icon→logo→login_image→phone→address→email→copyright,
+         widget file = preview 90×90 + input berdampingan, tombol "Save". --}}
     <div class="tw-card p-6">
         <h2 class="text-lg font-bold mb-4" style="color:var(--primary)">Setting Form</h2>
 
-        <div class="grid md:grid-cols-2 gap-4">
-            {{-- Initial --}}
-            <div>
-                <label class="form-label" for="initial">Initial</label>
-                <input type="text" id="initial" name="initial" maxlength="10"
-                       class="form-control @error('initial') is-invalid @enderror"
-                       value="{{ old('initial', $setting->initial) }}" placeholder="e.g. LA">
-                @error('initial')<div class="invalid-feedback">{{ $message }}</div>@enderror
-            </div>
-
-            {{-- Name --}}
-            <div>
-                <label class="form-label" for="name">App Name</label>
-                <input type="text" id="name" name="name" maxlength="200"
-                       class="form-control @error('name') is-invalid @enderror"
-                       value="{{ old('name', $setting->name) }}" placeholder="My Site">
-                @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
-            </div>
-
-            {{-- Phone --}}
-            <div>
-                <label class="form-label" for="phone">Phone</label>
-                <input type="text" id="phone" name="phone" maxlength="50"
-                       class="form-control @error('phone') is-invalid @enderror"
-                       value="{{ old('phone', $setting->phone) }}" placeholder="+62 ...">
-                @error('phone')<div class="invalid-feedback">{{ $message }}</div>@enderror
-            </div>
-
-            {{-- Email --}}
-            <div>
-                <label class="form-label" for="email">Email</label>
-                <input type="email" id="email" name="email" maxlength="200"
-                       class="form-control @error('email') is-invalid @enderror"
-                       value="{{ old('email', $setting->email) }}" placeholder="info@example.com">
-                @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
-            </div>
-
-            {{-- Copyright --}}
-            <div>
-                <label class="form-label" for="copyright">Copyright</label>
-                <input type="text" id="copyright" name="copyright" maxlength="200"
-                       class="form-control @error('copyright') is-invalid @enderror"
-                       value="{{ old('copyright', $setting->copyright) }}" placeholder="2026 My Company">
-                @error('copyright')<div class="invalid-feedback">{{ $message }}</div>@enderror
-            </div>
-
-            {{-- Address --}}
-            <div>
-                <label class="form-label" for="address">Address</label>
-                <input type="text" id="address" name="address" maxlength="500"
-                       class="form-control @error('address') is-invalid @enderror"
-                       value="{{ old('address', $setting->address) }}" placeholder="Jl. ...">
-                @error('address')<div class="invalid-feedback">{{ $message }}</div>@enderror
-            </div>
+        <div class="mb-3">
+            <label class="form-label fw-semibold" for="initial">Company Initial [initial]</label>
+            <input type="text" id="initial" name="initial" maxlength="10"
+                   class="form-control @error('initial') is-invalid @enderror"
+                   value="{{ old('initial', $setting->initial) }}">
+            @error('initial')<div class="invalid-feedback">{{ $message }}</div>@enderror
         </div>
 
-        {{-- Description --}}
-        <div class="mt-4">
-            <label class="form-label" for="description">Description</label>
+        <div class="mb-3">
+            <label class="form-label fw-semibold" for="name">Company Name [name]</label>
+            <input type="text" id="name" name="name" maxlength="200"
+                   class="form-control @error('name') is-invalid @enderror"
+                   value="{{ old('name', $setting->name) }}">
+            @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label fw-semibold" for="description">Description [description]</label>
             <textarea id="description" name="description"
-                      class="form-control trumbowyg-editor @error('description') is-invalid @enderror"
-                      rows="4" placeholder="Short description of your site..."
-            >{{ old('description', $setting->description) }}</textarea>
+                      class="trumbowyg-editor form-control @error('description') is-invalid @enderror"
+            >{!! old('description', $setting->description) !!}</textarea>
             @error('description')<div class="invalid-feedback">{{ $message }}</div>@enderror
         </div>
 
-        {{-- File Uploads --}}
-        <div class="grid md:grid-cols-3 gap-4 mt-4">
-            {{-- Icon --}}
-            <div>
-                <label class="form-label" for="icon">Icon (favicon)</label>
+        <div class="mb-4">
+            <label class="form-label fw-semibold" for="icon">Company Icon [icon]</label>
+            <div class="d-flex align-items-center gap-3">
+                <img id="icon-preview" src="{{ getFile($setting->icon) }}"
+                     width="90" height="90" class="rounded border p-1"
+                     style="object-fit:contain;background:#f8fafc"
+                     onerror="this.style.visibility='hidden'">
                 <input type="file" id="icon" name="icon" accept="image/*"
                        class="form-control @error('icon') is-invalid @enderror"
                        onchange="previewFile(this, 'icon-preview')">
-                @error('icon')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                <div class="mt-2">
-                    @if($setting->icon)
-                    <img id="icon-preview"
-                         src="{{ Str::startsWith($setting->icon, 'http') ? $setting->icon : asset('storage/' . $setting->icon) }}"
-                         alt="icon preview" class="h-10 w-10 object-contain border rounded">
-                    @else
-                    <img id="icon-preview" src="" alt="icon preview" class="h-10 w-10 object-contain border rounded hidden">
-                    @endif
-                </div>
             </div>
+            @error('icon')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
+        </div>
 
-            {{-- Logo --}}
-            <div>
-                <label class="form-label" for="logo">Company Logo</label>
+        <div class="mb-4">
+            <label class="form-label fw-semibold" for="logo">Company Logo [logo]</label>
+            <div class="d-flex align-items-center gap-3">
+                <img id="logo-preview" src="{{ getFile($setting->logo) }}"
+                     width="90" height="90" class="rounded border p-1"
+                     style="object-fit:contain;background:#f8fafc"
+                     onerror="this.style.visibility='hidden'">
                 <input type="file" id="logo" name="logo" accept="image/*"
                        class="form-control @error('logo') is-invalid @enderror"
                        onchange="previewFile(this, 'logo-preview')">
-                @error('logo')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                <div class="mt-2">
-                    @if($setting->logo)
-                    <img id="logo-preview"
-                         src="{{ Str::startsWith($setting->logo, 'http') ? $setting->logo : asset('storage/' . $setting->logo) }}"
-                         alt="logo preview" class="h-10 object-contain border rounded">
-                    @else
-                    <img id="logo-preview" src="" alt="logo preview" class="h-10 object-contain border rounded hidden">
-                    @endif
-                </div>
             </div>
+            @error('logo')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
+        </div>
 
-            {{-- Login Image --}}
-            <div>
-                <label class="form-label" for="login_image">Login Image</label>
+        <div class="mb-4">
+            <label class="form-label fw-semibold" for="login_image">Login Image [login_image]</label>
+            <div class="d-flex align-items-center gap-3">
+                <img id="login-image-preview" src="{{ getFile($setting->login_image) }}"
+                     width="90" height="90" class="rounded border p-1"
+                     style="object-fit:contain;background:#f8fafc"
+                     onerror="this.style.visibility='hidden'">
                 <input type="file" id="login_image" name="login_image" accept="image/*"
                        class="form-control @error('login_image') is-invalid @enderror"
                        onchange="previewFile(this, 'login-image-preview')">
-                @error('login_image')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                <div class="mt-2">
-                    @if($setting->login_image)
-                    <img id="login-image-preview"
-                         src="{{ Str::startsWith($setting->login_image, 'http') ? $setting->login_image : asset('storage/' . $setting->login_image) }}"
-                         alt="login image preview" class="h-16 object-contain border rounded">
-                    @else
-                    <img id="login-image-preview" src="" alt="login image preview" class="h-16 object-contain border rounded hidden">
-                    @endif
-                </div>
             </div>
+            @error('login_image')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
         </div>
 
-        <div class="mt-6">
-            <button type="submit" class="btn btn-primary px-4 py-2">
-                <i class="fas fa-save me-1"></i> Save Setting
-            </button>
+        <div class="mb-3">
+            <label class="form-label fw-semibold" for="phone">Phone [phone]</label>
+            <input type="text" id="phone" name="phone" maxlength="50"
+                   class="form-control @error('phone') is-invalid @enderror"
+                   value="{{ old('phone', $setting->phone) }}">
+            @error('phone')<div class="invalid-feedback">{{ $message }}</div>@enderror
         </div>
+
+        <div class="mb-3">
+            <label class="form-label fw-semibold" for="address">Address [address]</label>
+            <input type="text" id="address" name="address" maxlength="500"
+                   class="form-control @error('address') is-invalid @enderror"
+                   value="{{ old('address', $setting->address) }}">
+            @error('address')<div class="invalid-feedback">{{ $message }}</div>@enderror
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label fw-semibold" for="email">Email [email]</label>
+            <input type="email" id="email" name="email" maxlength="200"
+                   class="form-control @error('email') is-invalid @enderror"
+                   value="{{ old('email', $setting->email) }}">
+            @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
+        </div>
+
+        <div class="mb-4">
+            <label class="form-label fw-semibold" for="copyright">Copyright Text [copyright]</label>
+            <input type="text" id="copyright" name="copyright" maxlength="200"
+                   class="form-control @error('copyright') is-invalid @enderror"
+                   value="{{ old('copyright', $setting->copyright) }}">
+            @error('copyright')<div class="invalid-feedback">{{ $message }}</div>@enderror
+        </div>
+
+        <button type="submit" class="btn btn-primary-tw px-4 py-2">
+            <i class="fas fa-save me-1"></i> Save
+        </button>
     </div>
 </form>
 
@@ -484,6 +460,7 @@ function previewFile(input, previewId) {
         reader.onload = function(e) {
             preview.src = e.target.result;
             preview.classList.remove('hidden');
+            preview.style.visibility = 'visible';
         };
         reader.readAsDataURL(input.files[0]);
     }

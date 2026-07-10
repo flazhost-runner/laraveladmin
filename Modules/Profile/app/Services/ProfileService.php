@@ -3,8 +3,8 @@
 namespace Modules\Profile\app\Services;
 
 use App\Exceptions\NotFoundAppException;
-use App\Exceptions\ValidationAppException;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
 use Modules\Profile\app\Interfaces\IProfileService;
 
@@ -28,31 +28,28 @@ class ProfileService implements IProfileService
         }
 
         $payload = [
+            'code' => $data['code'],
             'name' => $data['name'],
             'phone' => $data['phone'] ?? null,
+            'email' => $data['email'],
+            'timezone' => $data['timezone'] ?? $user->timezone,
+            'status' => $data['status'],
             'updated_by' => $userId,
         ];
 
-        if (! empty($data['picture'])) {
-            $payload['picture'] = $data['picture'];
+        // Password inline di form profil (opsional) — paritas NodeAdmin.
+        if (! empty($data['password'])) {
+            $payload['password'] = Hash::make($data['password']);
+        }
+
+        // Avatar = FILE upload; kunci deterministik per user (menimpa foto lama) —
+        // paritas NodeAdmin UserService.updateProfile (modules/access/user/<id>.webp).
+        if (($data['picture'] ?? null) instanceof UploadedFile) {
+            $payload['picture'] = storeImage($data['picture'], 'modules/access/user/'.$userId);
         }
 
         $user->update($payload);
 
         return $user->fresh();
-    }
-
-    public function changePassword(string $userId, array $data): void
-    {
-        $user = User::find($userId);
-        if (! $user) {
-            throw new NotFoundAppException('User not found');
-        }
-
-        if (! Hash::check($data['current_password'], $user->password)) {
-            throw new ValidationAppException('Current password is incorrect');
-        }
-
-        $user->update(['password' => Hash::make($data['password'])]);
     }
 }

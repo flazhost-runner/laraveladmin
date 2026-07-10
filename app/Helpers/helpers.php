@@ -1,7 +1,11 @@
 <?php
 
+use App\Exceptions\ValidationAppException;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 if (! function_exists('paginate')) {
     /**
@@ -155,11 +159,73 @@ if (! function_exists('hasRole')) {
 
 if (! function_exists('getFile')) {
     /**
-     * Return a public asset URL for a stored file path, or empty string if null.
+     * Resolve a stored file KEY to a browser URL — driver-aware (paritas NodeAdmin
+     * fileService.getFile): local → /storage/<key>; oss/s3 → presigned URL (6 jam).
+     * Key avatar default di-special-case ke aset statis avatar.svg.
      */
     function getFile(?string $name): string
     {
-        return $name ? asset($name) : '';
+        if (! $name) {
+            return '';
+        }
+        if ($name === 'modules/access/user/user.png') {
+            return asset('be/default/img/avatar.svg');
+        }
+        if (Str::startsWith($name, ['http://', 'https://', '//'])) {
+            return $name;
+        }
+        $driver = config('filesystems.storage_driver', 'local');
+        if (in_array($driver, ['oss', 's3'], true)) {
+            try {
+                return Storage::disk($driver)
+                    ->temporaryUrl($name, now()->addHours(6));
+            } catch (Throwable) {
+                return Storage::disk($driver)->url($name);
+            }
+        }
+
+        return asset('storage/'.ltrim($name, '/'));
+    }
+}
+
+if (! function_exists('storeImage')) {
+    /**
+     * Simpan gambar upload dengan kunci modul (paritas NodeAdmin fileService.uploadFile):
+     * validasi konten via getimagesizefromstring (magic byte, bukan sekadar mime),
+     * konversi jpg/jpeg/png/bmp → webp quality 80 (webp/gif apa adanya), lalu put ke
+     * disk sesuai STORAGE_DRIVER. Mengembalikan KEY yang disimpan di DB.
+     */
+    function storeImage(UploadedFile $file, string $keyStem): string
+    {
+        $buffer = file_get_contents($file->getRealPath());
+        if ($buffer === false || @getimagesizefromstring($buffer) === false) {
+            throw new ValidationAppException('File bukan gambar yang valid');
+        }
+
+        $ext = strtolower($file->getClientOriginalExtension() ?: $file->extension() ?: 'png');
+        if (in_array($ext, ['jpg', 'jpeg', 'png', 'bmp'], true) && function_exists('imagewebp')) {
+            $img = @imagecreatefromstring($buffer);
+            if ($img !== false) {
+                imagepalettetotruecolor($img);
+                imagealphablending($img, true);
+                imagesavealpha($img, true);
+                ob_start();
+                $encoded = imagewebp($img, null, 80);
+                $converted = (string) ob_get_clean();
+                imagedestroy($img);
+                if ($encoded && $converted !== '') {
+                    $buffer = $converted;
+                    $ext = 'webp';
+                }
+            }
+        }
+
+        $key = $keyStem.'.'.$ext;
+        $driver = config('filesystems.storage_driver', 'local');
+        $disk = in_array($driver, ['oss', 's3'], true) ? $driver : 'public';
+        Storage::disk($disk)->put($key, $buffer);
+
+        return $key;
     }
 }
 
